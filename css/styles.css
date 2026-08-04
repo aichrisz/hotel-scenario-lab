@@ -357,3 +357,29 @@ html.motion-reduce .score-bar__fill { transition-duration: 0.01ms; }
   html:not(.motion-full) .keys-row .icon-key { animation: none; }
   html:not(.motion-full) .score-bar__fill { transition-duration: 0.01ms; }
 }
+
+/* v2: Training des Tages, Schwerpunkt und Katalogfilter */
+.totd, .drill { border-left: 5px solid var(--c-accent); }
+.totd__date { color: var(--c-ink-soft); font-size: var(--text-s); }
+.totd h3, .drill h2 { margin-top: var(--sp-2); }
+.drill { border-left-color: var(--c-primary); }
+.drill ul { margin-bottom: var(--sp-4); }
+.catalog-filter { margin-bottom: var(--sp-3); }
+.catalog-filter fieldset { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); align-items: end; }
+.catalog-filter legend { grid-column: 1 / -1; }
+.catalog-filter label { display: flex; flex-direction: column; gap: var(--sp-1); font-size: var(--text-s); font-weight: 600; }
+.catalog-filter select { min-height: 44px; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--c-ink-soft); border-radius: var(--radius-btn); background: var(--c-surface); color: var(--c-ink); font: inherit; }
+.catalog-filter .btn { align-self: end; }
+.filter-count { min-height: 1.55em; color: var(--c-ink-soft); font-size: var(--text-s); }
+.badge--mastered { border-color: var(--c-success); color: var(--c-success); background: #EFF4F1; }
+.badge--totd { border-color: var(--c-accent); color: var(--c-accent); }
+.badge--drill { border-color: var(--c-primary); color: var(--c-primary); }
+.retry-weak { display: inline-flex; flex-direction: column; align-items: flex-start; gap: var(--sp-1); }
+.retry-weak__hint { margin: 0; color: var(--c-ink-soft); font-size: var(--text-s); }
+@media (max-width: 600px) {
+  .catalog-filter fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 375px) {
+  .catalog-filter fieldset { display: flex; flex-direction: column; align-items: stretch; }
+  .catalog-filter label, .catalog-filter select, .catalog-filter .btn { width: 100%; }
+}

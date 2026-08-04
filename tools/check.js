@@ -2,340 +2,81 @@
   "use strict";
   window.HSL = window.HSL || {};
   var check = (HSL.check = HSL.check || {});
-
-  var ORDER12 = [
-    "sc-01-checkin-standard", "sc-02-checkin-no-reservation",
-    "sc-03-checkin-language-barrier", "sc-04-complaint-noise",
-    "sc-05-complaint-billing", "sc-06-complaint-review-threat",
-    "sc-07-upsell-arrival", "sc-08-upsell-services",
-    "sc-09-checkout-rush", "sc-10-checkout-minibar-dispute",
-    "sc-11-privacy-caller", "sc-12-escalation-collapse"
-  ];
-  var LANGS = ["de", "en", "id"];
-  var CATS = ["checkin", "complaint", "upsell", "checkout", "privacy", "escalation"];
-  var SOPS = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"];
-
-  function res(id, name, pass, detail) {
-    return { id: id, name: name, pass: !!pass, detail: detail || "" };
-  }
-
-  function isText3(v) {
-    return !!v && typeof v === "object" &&
-      LANGS.every(function (L) { return typeof v[L] === "string" && v[L].trim().length > 0; });
-  }
-
-  function paramsOf(s) {
-    var m = String(s).match(/\{(\w+)\}/g) || [];
-    return m.map(function (x) { return x.slice(1, -1); }).sort().join(",");
-  }
-
-  // DICT-PARITY: himpunan kunci identik, nilai non-kosong, parameter konsisten.
+  var ORDER12 = ["sc-01-checkin-standard","sc-02-checkin-no-reservation","sc-03-checkin-language-barrier","sc-04-complaint-noise","sc-05-complaint-billing","sc-06-complaint-review-threat","sc-07-upsell-arrival","sc-08-upsell-services","sc-09-checkout-rush","sc-10-checkout-minibar-dispute","sc-11-privacy-caller","sc-12-escalation-collapse"];
+  var ORDER15 = ORDER12.concat(["sc-13-fnb-breakfast-allergy","sc-14-housekeeping-lost-property","sc-15-overbooking-walk"]);
+  var LANGS = ["de", "en", "id"], FALLBACK_CATS = ["checkin","complaint","upsell","checkout","privacy","escalation","fnb","housekeeping","overbooking"], SOPS = ["P1","P2","P3","P4","P5","P6","P7","P8"];
+  var V2_KEYS = ["ui.home.cat.fnb","ui.home.cat.housekeeping","ui.home.cat.overbooking","ui.home.status.mastered","ui.home.totd.title","ui.home.totd.date","ui.home.totd.cta","ui.home.totd.hint","ui.home.totd.badge","ui.home.drill.title","ui.home.drill.needMore","ui.home.drill.none","ui.home.drill.axisLow","ui.home.drill.cta","ui.home.drill.badge","ui.home.filter.legend","ui.home.filter.cat","ui.home.filter.status","ui.home.filter.diff","ui.home.filter.sort","ui.home.filter.all","ui.home.filter.reset","ui.home.filter.count","ui.home.filter.none","ui.home.filter.resultsTitle","ui.home.sort.default","ui.home.sort.best","ui.home.sort.difficulty","ui.debrief.retryWeak","ui.debrief.retryWeakHint"];
+  function res(id, name, pass, detail) { return { id:id, name:name, pass:!!pass, detail:detail || "" }; }
+  function isText3(v) { return !!v && typeof v === "object" && LANGS.every(function (l) { return typeof v[l] === "string" && v[l].trim(); }); }
+  function paramsOf(s) { return (String(s).match(/\{(\w+)\}/g) || []).map(function (x) { return x.slice(1,-1); }).sort().join(","); }
+  function cats() { return HSL.data && Array.isArray(HSL.data.categories) ? HSL.data.categories : FALLBACK_CATS; }
   function dictParity() {
-    var dict = HSL.i18n && HSL.i18n.dict;
-    if (!dict || !dict.de || !dict.en || !dict.id) return res("DICT-PARITY", "paritas kamus", false, "kamus tidak lengkap termuat");
-    var bad = [];
-    var kd = Object.keys(dict.de).sort(), ke = Object.keys(dict.en).sort(), ki = Object.keys(dict.id).sort();
-    if (kd.join("") !== ke.join("") || kd.join("") !== ki.join("")) {
-      bad.push("himpunan kunci berbeda (de " + kd.length + " / en " + ke.length + " / id " + ki.length + ")");
-    }
-    kd.forEach(function (k) {
-      LANGS.forEach(function (L) {
-        var v = dict[L][k];
-        if (typeof v !== "string" || !v.trim()) bad.push(L + ":" + k + " kosong");
-      });
-      if (typeof dict.en[k] === "string" && typeof dict.id[k] === "string") {
-        var p = paramsOf(dict.de[k]);
-        if (paramsOf(dict.en[k]) !== p || paramsOf(dict.id[k]) !== p) bad.push(k + " parameter tidak konsisten");
-      }
-    });
-    return res("DICT-PARITY", "paritas 3 kamus UI", bad.length === 0, bad.slice(0, 5).join("; "));
+    var d = HSL.i18n && HSL.i18n.dict, bad = [];
+    if (!d || !d.de || !d.en || !d.id) return res("DICT-PARITY","paritas 3 kamus UI",false,"kamus tidak lengkap termuat");
+    var kd=Object.keys(d.de).sort(), ke=Object.keys(d.en).sort(), ki=Object.keys(d.id).sort();
+    if (kd.join("\x01")!==ke.join("\x01") || kd.join("\x01")!==ki.join("\x01")) bad.push("himpunan kunci berbeda");
+    kd.forEach(function (k) { LANGS.forEach(function (l) { if (typeof d[l][k] !== "string" || !d[l][k].trim()) bad.push(l+":"+k+" kosong"); }); if (paramsOf(d.de[k])!==paramsOf(d.en[k]) || paramsOf(d.de[k])!==paramsOf(d.id[k])) bad.push(k+" parameter tidak konsisten"); });
+    return res("DICT-PARITY","paritas 3 kamus UI",!bad.length,bad.slice(0,5).join("; "));
   }
-
-  // REG-ORDER: 12 slug persis §8.1, unik, objek skenario ada dengan id sama.
+  function dictV2Keys() {
+    var d=HSL.i18n && HSL.i18n.dict, bad=[];
+    V2_KEYS.forEach(function (k) { LANGS.forEach(function (l) { if (!d || !d[l] || typeof d[l][k] !== "string" || !d[l][k].trim()) bad.push(l+":"+k); }); });
+    LANGS.forEach(function (l) { if (!d || paramsOf(d[l] && d[l]["ui.home.progress"]) !== "done,keys,max,total") bad.push(l+":ui.home.progress parameters"); });
+    return res("DICT-V2KEYS","kunci UI v2",!bad.length,bad.slice(0,5).join(", "));
+  }
   function regOrder() {
-    var data = HSL.data || { scenarios: {}, order: [] };
-    var order = Array.isArray(data.order) ? data.order : [];
-    var bad = [];
-    if (order.length !== 12) bad.push(order.length + " dari 12 slug");
-    ORDER12.forEach(function (slug, i) {
-      if (order[i] !== slug) bad.push("posisi " + (i + 1) + " ≠ " + slug);
-    });
-    var seen = {};
-    order.forEach(function (slug) {
-      if (seen[slug]) bad.push("duplikat " + slug);
-      seen[slug] = true;
-      var sc = data.scenarios && data.scenarios[slug];
-      if (!sc) bad.push(slug + " tanpa objek");
-      else if (sc.id !== slug) bad.push(slug + " id tidak cocok");
-    });
-    return res("REG-ORDER", "registri 12 skenario", bad.length === 0, bad.slice(0, 4).join("; "));
+    var data=HSL.data||{}, order=Array.isArray(data.order)?data.order:[], bad=[];
+    ORDER12.forEach(function (s,i) { if (order[i]!==s) bad.push("posisi "+(i+1)+" ≠ "+s); });
+    if (order.length!==ORDER15.length) bad.push(order.length+" dari "+ORDER15.length+" slug");
+    ORDER15.forEach(function (s,i) { if (order[i]!==s) bad.push("posisi "+(i+1)+" ≠ "+s); });
+    var seen={}; order.forEach(function (s) { if (seen[s]) bad.push("duplikat "+s); seen[s]=true; var sc=data.scenarios&&data.scenarios[s]; if (!sc) bad.push(s+" tanpa objek"); else if (sc.id!==s) bad.push(s+" id tidak cocok"); });
+    return res("REG-ORDER","registri skenario",!bad.length,bad.slice(0,5).join("; "));
   }
-
-  // SC-FIELDS: bidang wajib §6.1.
-  function scFields(slug, sc) {
-    var bad = [];
-    if (sc.id !== slug) bad.push("id");
-    if (CATS.indexOf(sc.category) < 0) bad.push("category");
-    if (!(Number.isInteger(sc.difficulty) && sc.difficulty >= 1 && sc.difficulty <= 3)) bad.push("difficulty");
-    if (!(Number.isInteger(sc.minutes) && sc.minutes >= 3 && sc.minutes <= 10)) bad.push("minutes");
-    if (sc.startNode !== "n1") bad.push("startNode");
-    if (!isText3(sc.title)) bad.push("title");
-    if (!isText3(sc.summary)) bad.push("summary");
-    var ctx = sc.context;
-    if (!ctx || !isText3(ctx.place) || !isText3(ctx.situation) || !isText3(ctx.guest) || !isText3(ctx.constraints)) bad.push("context");
-    if (!Array.isArray(sc.goals) || sc.goals.length < 2 || sc.goals.length > 3 || !sc.goals.every(isText3)) bad.push("goals");
-    var d = sc.debrief;
-    if (!d || !d.tips || !isText3(d.tips.decision) || !isText3(d.tips.language) || !isText3(d.tips.sop) ||
-        !isText3(d.safetyTip) || !isText3(d.praise)) bad.push("debrief");
-    if (!Array.isArray(sc.sopRefs) || sc.sopRefs.length === 0 ||
-        !sc.sopRefs.every(function (p) { return SOPS.indexOf(p) >= 0; })) bad.push("sopRefs");
-    if (!sc.nodes || typeof sc.nodes !== "object") bad.push("nodes");
-    return res("SC-FIELDS-" + slug, "bidang wajib", bad.length === 0, bad.join(", "));
+  function catCover() {
+    var data=HSL.data||{}, cs=data.categories, bad=[];
+    if (!Array.isArray(cs) || cs.length!==9 || !cs.every(function (x) { return typeof x === "string"; })) bad.push("categories bukan 9 string");
+    var present=Array.isArray(cs)?cs:[];
+    FALLBACK_CATS.slice(0,6).forEach(function (c,i) { if (present[i]!==c) bad.push("kategori v1 posisi "+(i+1)); });
+    (data.order||[]).forEach(function (s) { var sc=data.scenarios&&data.scenarios[s]; if (sc && present.indexOf(sc.category)<0) bad.push(s+" kategori asing"); });
+    present.forEach(function (c) { if (!(data.order||[]).some(function (s) { return data.scenarios[s] && data.scenarios[s].category===c; })) bad.push(c+" kosong"); });
+    return res("CAT-COVER","cakupan kategori",!bad.length,bad.join("; "));
   }
-
-  // SC-TEXT3: kelengkapan tiga bahasa, batas panjang §8.2.11, tanpa markup.
-  function scText3(slug, sc) {
-    var bad = [];
-    function noMarkup(t3, path) {
-      LANGS.forEach(function (L) {
-        if (typeof t3[L] === "string" && /<[a-zA-Z]/.test(t3[L])) bad.push(path + "." + L + " memuat markup");
-      });
-    }
-    function t3check(t3, path, max) {
-      if (!isText3(t3)) { bad.push(path + " tidak lengkap 3 bahasa"); return; }
-      noMarkup(t3, path);
-      if (max) {
-        LANGS.forEach(function (L) {
-          if (t3[L].length > max) bad.push(path + "." + L + " " + t3[L].length + " > " + max);
-        });
-      }
-    }
-    t3check(sc.title, "title");
-    t3check(sc.summary, "summary");
-    if (sc.context) {
-      ["place", "situation", "guest", "constraints"].forEach(function (f) { t3check(sc.context[f], "context." + f); });
-    }
-    (sc.goals || []).forEach(function (g, i) { t3check(g, "goals[" + i + "]"); });
-    if (sc.debrief) {
-      ["decision", "language", "sop"].forEach(function (f) { t3check(sc.debrief.tips && sc.debrief.tips[f], "debrief.tips." + f); });
-      t3check(sc.debrief.safetyTip, "debrief.safetyTip");
-      t3check(sc.debrief.praise, "debrief.praise");
-    }
-    Object.keys(sc.nodes || {}).forEach(function (nid) {
-      var n = sc.nodes[nid];
-      if (n.type === "decision") {
-        t3check(n.phase, nid + ".phase");
-        t3check(n.narration, nid + ".narration", 700);
-        if (n.guestLine !== null && n.guestLine !== undefined) t3check(n.guestLine, nid + ".guestLine", 240);
-        (n.options || []).forEach(function (o) {
-          t3check(o.label, nid + "." + o.id + ".label", 140);
-          t3check(o.feedback, nid + "." + o.id + ".feedback", 350);
-        });
-      } else if (n.type === "outcome") {
-        t3check(n.ending, nid + ".ending", 700);
-      } else {
-        bad.push(nid + " type tak dikenal");
-      }
-    });
-    return res("SC-TEXT3-" + slug, "Text3 lengkap & batas panjang", bad.length === 0, bad.slice(0, 5).join("; "));
+  function scFields(slug,sc) {
+    var bad=[]; if(sc.id!==slug)bad.push("id"); if(cats().indexOf(sc.category)<0)bad.push("category"); if(!(Number.isInteger(sc.difficulty)&&sc.difficulty>=1&&sc.difficulty<=3))bad.push("difficulty"); if(!(Number.isInteger(sc.minutes)&&sc.minutes>=3&&sc.minutes<=10))bad.push("minutes"); if(sc.startNode!=="n1")bad.push("startNode"); if(!isText3(sc.title)||!isText3(sc.summary))bad.push("title/summary");
+    var c=sc.context||{}; if(!isText3(c.place)||!isText3(c.situation)||!isText3(c.guest)||!isText3(c.constraints))bad.push("context"); if(!Array.isArray(sc.goals)||sc.goals.length<2||sc.goals.length>3||!sc.goals.every(isText3))bad.push("goals");
+    var d=sc.debrief; if(!d||!d.tips||!isText3(d.tips.decision)||!isText3(d.tips.language)||!isText3(d.tips.sop)||!isText3(d.safetyTip)||!isText3(d.praise))bad.push("debrief"); if(!Array.isArray(sc.sopRefs)||!sc.sopRefs.length||!sc.sopRefs.every(function(p){return SOPS.indexOf(p)>=0;}))bad.push("sopRefs"); if(!sc.nodes||typeof sc.nodes!=="object")bad.push("nodes");
+    return res("SC-FIELDS-"+slug,"bidang wajib",!bad.length,bad.join(", "));
   }
-
-  // SC-GRAF: aturan graf §6.2.
-  function scGraf(slug, sc) {
-    var bad = [];
-    var nodes = sc.nodes || {};
-    var ids = Object.keys(nodes);
-    if (!nodes.n1 || nodes.n1.type !== "decision") bad.push("n1 absen/bukan decision");
-    ids.forEach(function (nid) {
-      var n = nodes[nid];
-      if (n.type === "decision") {
-        var opts = n.options || [];
-        if (opts.length < 3 || opts.length > 4) bad.push(nid + " " + opts.length + " opsi");
-        var seen = {};
-        opts.forEach(function (o) {
-          if (["a", "b", "c", "d"].indexOf(o.id) < 0 || seen[o.id]) bad.push(nid + " id opsi " + o.id);
-          seen[o.id] = true;
-          if (!nodes[o.next]) bad.push(nid + "." + o.id + " next " + o.next + " tak ada");
-        });
-      }
-    });
-    // Jangkauan dari n1 + enumerasi jalur (graf kecil) + deteksi siklus.
-    var reach = {};
-    var pathBad = [];
-    function walk(nid, depth, trail) {
-      if (trail.indexOf(nid) >= 0) { pathBad.push("siklus di " + nid); return; }
-      reach[nid] = true;
-      var n = nodes[nid];
-      if (!n) return;
-      if (n.type === "outcome") {
-        if (depth < 3 || depth > 5) pathBad.push("jalur " + depth + " simpul ke " + nid);
-        return;
-      }
-      if (depth >= 12) { pathBad.push("jalur terlalu dalam di " + nid); return; }
-      (n.options || []).forEach(function (o) {
-        if (nodes[o.next]) walk(o.next, depth + 1, trail.concat(nid));
-      });
-    }
-    if (nodes.n1) walk("n1", 0, []);
-    bad = bad.concat(pathBad.slice(0, 4));
-    ids.forEach(function (nid) { if (!reach[nid]) bad.push(nid + " yatim"); });
-    ids.forEach(function (nid) {
-      var n = nodes[nid];
-      if (n.type === "outcome" && ["good", "mixed", "poor"].indexOf(n.tone) < 0) bad.push(nid + " tone");
-    });
-    return res("SC-GRAF-" + slug, "DAG, jalur 3–5, tanpa yatim", bad.length === 0, bad.slice(0, 5).join("; "));
+  function scText3(slug,sc) {
+    var bad=[]; function t3(v,p,max){ if(!isText3(v)){bad.push(p+" tidak lengkap 3 bahasa");return;} LANGS.forEach(function(l){if(/<[a-zA-Z]/.test(v[l]))bad.push(p+"."+l+" markup");if(max&&v[l].length>max)bad.push(p+"."+l+" "+v[l].length+">"+max);}); }
+    t3(sc.title,"title");t3(sc.summary,"summary"); if(sc.context)["place","situation","guest","constraints"].forEach(function(f){t3(sc.context[f],"context."+f);}); (sc.goals||[]).forEach(function(g,i){t3(g,"goals["+i+"]");}); if(sc.debrief){["decision","language","sop"].forEach(function(f){t3(sc.debrief.tips&&sc.debrief.tips[f],"debrief.tips."+f);});t3(sc.debrief.safetyTip,"debrief.safetyTip");t3(sc.debrief.praise,"debrief.praise");}
+    Object.keys(sc.nodes||{}).forEach(function(id){var n=sc.nodes[id];if(n.type==="decision"){t3(n.phase,id+".phase");t3(n.narration,id+".narration",700);if(n.guestLine!==null&&n.guestLine!==undefined)t3(n.guestLine,id+".guestLine",240);(n.options||[]).forEach(function(o){t3(o.label,id+"."+o.id+".label",140);t3(o.feedback,id+"."+o.id+".feedback",350);});}else if(n.type==="outcome")t3(n.ending,id+".ending",700);else bad.push(id+" type");});
+    return res("SC-TEXT3-"+slug,"Text3 lengkap & batas panjang",!bad.length,bad.slice(0,5).join("; "));
   }
-
-  // SC-RUBRIK: aturan skor & bendera §8.2.
-  function scRubrik(slug, sc) {
-    var bad = [];
-    var hasEscalate = false;
-    Object.keys(sc.nodes || {}).forEach(function (nid) {
-      var n = sc.nodes[nid];
-      if (n.type !== "decision") return;
-      var perfect = 0, lowSum = 0;
-      var combos = {};
-      (n.options || []).forEach(function (o) {
-        var s = o.scores || {};
-        ["d", "l", "s"].forEach(function (ax) {
-          if ([0, 1, 2].indexOf(s[ax]) < 0) bad.push(nid + "." + o.id + " skor " + ax);
-        });
-        if (s.d === 2 && s.l === 2 && s.s === 2) perfect++;
-        if (s.d + s.l + s.s <= 2) lowSum++;
-        var key = s.d + "/" + s.l + "/" + s.s + ">" + o.next;
-        if (combos[key]) bad.push(nid + " duplikat triple+next " + key);
-        combos[key] = true;
-        var f = o.flags || {};
-        if (f.unsafe && f.escalate) bad.push(nid + "." + o.id + " unsafe+escalate");
-        if (f.unsafe && !(s.s === 0 && s.d <= 1)) bad.push(nid + "." + o.id + " unsafe wajib s=0,d<=1");
-        if (f.escalate) {
-          hasEscalate = true;
-          if (!(s.d >= 1 && s.s >= 1)) bad.push(nid + "." + o.id + " escalate wajib d>=1,s>=1");
-        }
-      });
-      if (perfect !== 1) bad.push(nid + " opsi 2/2/2 = " + perfect);
-      if (lowSum < 1) bad.push(nid + " tanpa opsi berjumlah <= 2");
-    });
-    if (!hasEscalate) bad.push("tanpa opsi escalate di skenario");
-    return res("SC-RUBRIK-" + slug, "rubrik opsi & bendera", bad.length === 0, bad.slice(0, 5).join("; "));
+  function scGraf(slug,sc) {
+    var bad=[],nodes=sc.nodes||{},ids=Object.keys(nodes);if(!nodes.n1||nodes.n1.type!=="decision")bad.push("n1 absen/bukan decision");
+    ids.forEach(function(id){var n=nodes[id];if(n.type==="decision"){var os=n.options||[],seen={};if(os.length<3||os.length>4)bad.push(id+" "+os.length+" opsi");os.forEach(function(o){if(["a","b","c","d"].indexOf(o.id)<0||seen[o.id])bad.push(id+" id opsi "+o.id);seen[o.id]=true;if(!nodes[o.next])bad.push(id+"."+o.id+" next");});}});
+    var reach={}, path=[]; function walk(id,depth,trail){if(trail.indexOf(id)>=0){path.push("siklus");return;}reach[id]=true;var n=nodes[id];if(!n)return;if(n.type==="outcome"){if(depth<3||depth>5)path.push("jalur "+depth);return;}if(depth>=12){path.push("terlalu dalam");return;}(n.options||[]).forEach(function(o){walk(o.next,depth+1,trail.concat(id));});}
+    if(nodes.n1)walk("n1",0,[]);bad=bad.concat(path.slice(0,4));ids.forEach(function(id){if(!reach[id])bad.push(id+" yatim");});ids.forEach(function(id){if(nodes[id].type==="outcome"&&["good","mixed","poor"].indexOf(nodes[id].tone)<0)bad.push(id+" tone");});
+    return res("SC-GRAF-"+slug,"DAG, jalur 3–5, tanpa yatim",!bad.length,bad.slice(0,5).join("; "));
   }
-
-  // GOLD-A…D: kasus emas §9.5 terhadap HSL.engine (fixture sintetis Tugas 5).
-  function golds() {
-    var out = [];
-    if (!HSL.engine) {
-      ["A", "B", "C", "D"].forEach(function (k) { out.push(res("GOLD-" + k, "kasus emas", false, "engine absen")); });
-      return out;
-    }
-    function t3(s) { return { de: s, en: s, id: s }; }
-    function opt(id, d, l, s, next, unsafe) {
-      var o = { id: id, label: t3("o" + id), scores: { d: d, l: l, s: s }, feedback: t3("f"), next: next };
-      if (unsafe) o.flags = { unsafe: true };
-      return o;
-    }
-    function node(opts) { return { type: "decision", phase: t3("Fase"), narration: t3("n"), guestLine: null, options: opts }; }
-    var sc = {
-      id: "gold", startNode: "n1",
-      debrief: { tips: { decision: t3("TD"), language: t3("TL"), sop: t3("TS") }, safetyTip: t3("SAFE"), praise: t3("PUJI") },
-      nodes: {
-        n1: node([opt("a", 2, 2, 2, "n2"), opt("b", 1, 2, 1, "n2"), opt("c", 0, 1, 0, "n2", true)]),
-        n2: node([opt("a", 2, 2, 2, "n3"), opt("b", 1, 2, 1, "n3"), opt("c", 0, 1, 0, "n3", true)]),
-        n3: node([opt("a", 2, 2, 2, "n4"), opt("b", 2, 1, 2, "n4"), opt("c", 0, 1, 0, "n4", true), opt("d", 1, 1, 1, "n4")]),
-        n4: node([opt("a", 2, 2, 2, "x1"), opt("b", 1, 1, 1, "x1")]),
-        x1: { type: "outcome", tone: "good", ending: t3("akhir") }
-      }
-    };
-    var CASES = [
-      ["A", ["a", "a", "a", "a"], { d: 100, l: 100, s: 100, g: 100, k: 5, safe: true }],
-      ["B", ["b", "a", "b", "a"], { d: 88, l: 88, s: 88, g: 88, k: 4, safe: true }],
-      ["C", ["a", "c", "d", "a"], { d: 63, l: 75, s: 63, g: 66, k: 3, safe: false }],
-      ["D", ["a", "a", "c", "a"], { d: 75, l: 88, s: 75, g: 78, k: 3, safe: false }]
-    ];
-    CASES.forEach(function (c) {
-      var r = HSL.engine.createRun(sc, "id", "2026-07-26T00:00:00.000Z");
-      c[1].forEach(function (o) { r = HSL.engine.applyChoice(sc, r, o); });
-      var s = HSL.engine.summarize(sc, r);
-      var x = c[2];
-      var ok = s.scores.decision === x.d && s.scores.language === x.l && s.scores.sop === x.s &&
-        s.scores.combined === x.g && s.keys === x.k && s.safe === x.safe && s.N === 4;
-      out.push(res("GOLD-" + c[0], "kasus emas §9.5", ok,
-        ok ? "" : JSON.stringify(s.scores) + " keys=" + s.keys + " safe=" + s.safe));
-    });
-    return out;
-  }
-
-  check.runAll = function () {
-    var out = [];
-    out.push(dictParity());
-    out.push(regOrder());
-    var data = HSL.data || { scenarios: {}, order: [] };
-    var slugs = Array.isArray(data.order) && data.order.length ? data.order : Object.keys(data.scenarios || {});
-    slugs.forEach(function (slug) {
-      var sc = data.scenarios && data.scenarios[slug];
-      if (!sc) return;
-      out.push(scFields(slug, sc));
-      out.push(scText3(slug, sc));
-      out.push(scGraf(slug, sc));
-      out.push(scRubrik(slug, sc));
-    });
-    return out.concat(golds());
-  };
-
-  // Daftar kanonik DE untuk pembandingan manual T-04.
-  check.canonicalDe = function () {
-    var data = HSL.data || { scenarios: {}, order: [] };
-    return (data.order || []).map(function (slug) {
-      var sc = data.scenarios && data.scenarios[slug];
-      return {
-        slug: slug,
-        titleDe: sc && sc.title ? sc.title.de : "(absen)",
-        summaryDe: sc && sc.summary ? sc.summary.de : "(absen)"
-      };
-    });
-  };
-
-  // Bootstrap render — hanya bila halaman check.html yang memuat berkas ini.
-  if (typeof document !== "undefined" && document.getElementById("check-out")) {
-    var mount = document.getElementById("check-out");
-    var results = check.runAll();
-    var passCount = results.filter(function (r) { return r.pass; }).length;
-    var h = document.createElement("p");
-    h.textContent = passCount + "/" + results.length + " PASS" + (passCount === results.length ? " — semua hijau" : " — ADA KEGAGALAN");
-    h.className = passCount === results.length ? "check-pass" : "check-fail";
-    mount.appendChild(h);
-    var table = document.createElement("table");
-    table.className = "check-table";
-    var thead = document.createElement("thead");
-    var trh = document.createElement("tr");
-    ["Status", "Id", "Nama", "Detail"].forEach(function (t) {
-      var th = document.createElement("th");
-      th.textContent = t;
-      trh.appendChild(th);
-    });
-    thead.appendChild(trh);
-    table.appendChild(thead);
-    var tbody = document.createElement("tbody");
-    results.forEach(function (r) {
-      var tr = document.createElement("tr");
-      [[r.pass ? "PASS" : "FAIL", r.pass ? "check-pass" : "check-fail"], [r.id], [r.name], [r.detail]].forEach(function (cell) {
-        var td = document.createElement("td");
-        td.textContent = cell[0];
-        if (cell[1]) td.className = cell[1];
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    mount.appendChild(table);
-    var h2 = document.createElement("h2");
-    h2.textContent = "Daftar kanonik DE (pembanding T-04)";
-    mount.appendChild(h2);
-    var ol = document.createElement("ol");
-    check.canonicalDe().forEach(function (row) {
-      var li = document.createElement("li");
-      li.textContent = row.slug + " — " + row.titleDe + " — " + row.summaryDe;
-      ol.appendChild(li);
-    });
-    mount.appendChild(ol);
-  }
+  function scRubrik(slug,sc){var bad=[],esc=false;Object.keys(sc.nodes||{}).forEach(function(id){var n=sc.nodes[id];if(n.type!=="decision")return;var perfect=0,low=0,combos={};(n.options||[]).forEach(function(o){var s=o.scores||{};["d","l","s"].forEach(function(a){if([0,1,2].indexOf(s[a])<0)bad.push(id+"."+o.id+" skor "+a);});if(s.d===2&&s.l===2&&s.s===2)perfect++;if(s.d+s.l+s.s<=2)low++;var k=s.d+"/"+s.l+"/"+s.s+">"+o.next;if(combos[k])bad.push(id+" duplikat");combos[k]=true;var f=o.flags||{};if(f.unsafe&&f.escalate)bad.push(id+" unsafe+escalate");if(f.unsafe&&!(s.s===0&&s.d<=1))bad.push(id+" unsafe skor");if(f.escalate){esc=true;if(!(s.d>=1&&s.s>=1))bad.push(id+" escalate skor");}});if(perfect!==1)bad.push(id+" perfect="+perfect);if(!low)bad.push(id+" tanpa skor rendah");});if(!esc)bad.push("tanpa opsi escalate");return res("SC-RUBRIK-"+slug,"rubrik opsi & bendera",!bad.length,bad.slice(0,5).join("; "));}
+  function text3(s){return {de:s,en:s,id:s};}
+  function goldFixture(){function o(id,d,l,s,next,u){var x={id:id,label:text3("o"+id),scores:{d:d,l:l,s:s},feedback:text3("f"),next:next};if(u)x.flags={unsafe:true};return x;}function n(os){return{type:"decision",phase:text3("Fase"),narration:text3("n"),guestLine:null,options:os};}return{id:"gold",startNode:"n1",debrief:{tips:{decision:text3("TD"),language:text3("TL"),sop:text3("TS")},safetyTip:text3("SAFE"),praise:text3("PUJI")},nodes:{n1:n([o("a",2,2,2,"n2"),o("b",1,2,1,"n2"),o("c",0,1,0,"n2",true)]),n2:n([o("a",2,2,2,"n3"),o("b",1,2,1,"n3"),o("c",0,1,0,"n3",true)]),n3:n([o("a",2,2,2,"n4"),o("b",2,1,2,"n4"),o("c",0,1,0,"n4",true),o("d",1,1,1,"n4")]),n4:n([o("a",2,2,2,"x1"),o("b",1,1,1,"x1")]),x1:{type:"outcome",tone:"good",ending:text3("akhir")}}};}
+  var GOLD_CASES=[["A",["a","a","a","a"],{d:100,l:100,s:100,g:100,k:5,safe:true}],["B",["b","a","b","a"],{d:88,l:88,s:88,g:88,k:4,safe:true}],["C",["a","c","d","a"],{d:63,l:75,s:63,g:66,k:3,safe:false}],["D",["a","a","c","a"],{d:75,l:88,s:75,g:78,k:3,safe:false}]];
+  function makeGoldRun(seq){var sc=goldFixture(),r=HSL.engine.createRun(sc,"id","2026-07-26T00:00:00.000Z");seq.forEach(function(x){r=HSL.engine.applyChoice(sc,r,x);});return{sc:sc,run:r};}
+  function golds(){return GOLD_CASES.map(function(c){var x=makeGoldRun(c[1]),s=HSL.engine.summarize(x.sc,x.run),e=c[2],ok=s.scores.decision===e.d&&s.scores.language===e.l&&s.scores.sop===e.s&&s.scores.combined===e.g&&s.keys===e.k&&s.safe===e.safe&&s.N===4;return res("GOLD-"+c[0],"kasus emas §9.5",ok,ok?"":JSON.stringify(s.scores)+" keys="+s.keys);});}
+  function dates2026(){var days=[],months=[31,28,31,30,31,30,31,31,30,31,30,31];for(var m=1;m<=12;m++)for(var d=1;d<=months[m-1];d++)days.push("2026-"+(m<10?"0":"")+m+"-"+(d<10?"0":"")+d);return days;}
+  function totd(){var e=HSL.engine,o=ORDER15,bad=[];[["2026-01-01",4149592858],["2026-08-04",594494905],["2026-12-31",4252829426]].forEach(function(x){if(e.dateHash(x[0])!==x[1])bad.push(x[0]);});["2026-1-1","",null,7].forEach(function(x){if(e.dateHash(x)!==-1)bad.push("invalid");});if(e.trainingOfTheDay([],"2026-01-01")!==null||e.trainingOfTheDay(o,"x")!==null)bad.push("null contract");var h=e.dateHash("2026-08-04");if(e.trainingOfTheDay(o,"2026-08-04")!==o[h%o.length])bad.push("index");if(e.trainingOfTheDay(o,"2026-08-04")!==e.trainingOfTheDay(o,"2026-08-04"))bad.push("non deterministic");return [res("TOTD-DET","determinisme Training des Tages",!bad.length,bad.join(","))];}
+  function totdRange(){var e=HSL.engine,bad=dates2026().some(function(k){return ORDER15.indexOf(e.trainingOfTheDay(ORDER15,k))<0;});return res("TOTD-RANGE","rentang tanggal Training des Tages",!bad.length,bad?"hasil di luar registri":"");}
+  function totdSpread(){var e=HSL.engine,f={};dates2026().forEach(function(k){var s=e.trainingOfTheDay(ORDER15,k);f[s]=(f[s]||0)+1;});var vals=ORDER15.map(function(s){return f[s]||0;}),min=Math.min.apply(Math,vals),max=Math.max.apply(Math,vals),lo=Math.max(1,Math.floor(365/(3*ORDER15.length))),hi=Math.ceil(3*365/ORDER15.length),ok=min>=lo&&max<=hi;return res("TOTD-SPREAD","sebaran Training des Tages",ok,"min="+min+" max="+max+" ambang="+lo+".."+hi);}
+  function weakChecks(){var e=HSL.engine,o=["s1","s2","s3","s4"],p={};var a=e.weakAxis(o,p),b=e.weakAxis(o,{s1:{best:{decision:80,language:90,sop:50}},s2:{best:{decision:70,language:85,sop:60}}}),c=e.weakAxis(o,{s1:{best:{decision:60,language:80,sop:60}},s2:{best:{decision:60,language:80,sop:60}}}),d=e.weakAxis(o,{s1:{best:{decision:80,language:80,sop:40}},s2:{best:{decision:80,language:80,sop:40}},s3:{best:{decision:80,language:80,sop:70}},s4:{best:{decision:80,language:80,sop:90}},foreign:{best:{decision:0,language:0,sop:0}}});return [res("WEAK-EMPTY","weak-axis tanpa sampel",a===null&&e.weakAxis(o,{s1:{best:{decision:1,language:1,sop:1}}})===null),res("WEAK-LOW","weak-axis terendah",b&&b.axis==="sop"&&b.avg===55&&b.samples===2),res("WEAK-TIE","tie-break weak-axis",c&&c.axis==="sop"),res("WEAK-SLUGS","slug weak-axis",d&&d.slugs.join(",")==="s1,s2,s3")];}
+  function catalogFixture(){var o=["c1","c2","c3","c4","c5"],cats=["fnb","housekeeping","overbooking","fnb","housekeeping"],sc={c1:{category:"fnb",difficulty:2},c2:{category:"housekeeping",difficulty:1},c3:{category:"overbooking",difficulty:3},c4:{category:"fnb",difficulty:2},c5:{category:"housekeeping",difficulty:1}},p={c2:{completed:true,best:{combined:90,keys:5,decision:80,language:80,sop:80}},c3:{completed:true,best:{combined:70,keys:4,decision:60,language:70,sop:80}},c5:{completed:true,best:{combined:90,keys:5,decision:90,language:90,sop:90}}};return{o:o,cats:cats,sc:sc,p:p};}
+  function catalogChecks(){var e=HSL.engine,f=catalogFixture(),o=f.o,p=f.p,sc=f.sc,fail=[];if(e.statusOfSlug("c1",p,"c1")!=="active"||e.statusOfSlug("c2",p)!=="mastered"||e.statusOfSlug("c3",p)!=="done"||e.statusOfSlug("c4",p)!=="new")fail.push("status");if(e.filterSortCatalog(o,sc,p,"c1",{cat:"fnb"},f.cats).join(",")!=="c1,c4")fail.push("cat");if(e.filterSortCatalog(o,sc,p,"c1",{diff:"2"},f.cats).join(",")!=="c1,c4")fail.push("diff");if(e.filterSortCatalog(o,sc,p,"c1",{status:"done"},f.cats).join(",")!=="c2,c3,c5")fail.push("done");if(e.filterSortCatalog(o,sc,p,"c1",{status:"mastered"},f.cats).join(",")!=="c2,c5")fail.push("mastered");var n=e.normalizeCatalogOpts({cat:"bad",status:"bad",diff:"2",sort:"bad"},["a","b","c"]);if(n.cat!=="all"||n.status!=="all"||n.diff!==2||n.sort!=="default")fail.push("normalize");return res("CAT-FILTER","filter katalog",!fail.length,fail.join(","));}
+  function catalogSort(){var e=HSL.engine,f=catalogFixture(),best=e.filterSortCatalog(f.o,f.sc,f.p,"c1",{sort:"best"},f.cats),diff=e.filterSortCatalog(f.o,f.sc,f.p,"c1",{sort:"difficulty"},f.cats),weak=e.filterSortCatalog(f.o,f.sc,f.p,"c1",{sort:"weak",axis:"decision"},f.cats);var ok=best.join(",")==="c2,c5,c3,c1,c4"&&diff.join(",")==="c2,c5,c1,c4,c3"&&weak.join(",")==="c3,c2,c5,c1,c4";return res("CAT-SORT","sort katalog",ok,best+" / "+diff+" / "+weak);}
+  function catalogStable(){var e=HSL.engine,f=catalogFixture(),all=[],ok=true;["all","fnb","housekeeping"].forEach(function(cat){["all","new","done","mastered"].forEach(function(status){["default","best","difficulty"].forEach(function(sort){var r=e.filterSortCatalog(f.o,f.sc,f.p,"c1",{cat:cat,status:status,sort:sort},f.cats),u=r.filter(function(x,i){return r.indexOf(x)===i;});if(r.length!==u.length||r.some(function(x){return f.o.indexOf(x)<0;}))ok=false;all.push(r.join(","));});});});["default","best","difficulty"].forEach(function(sort){var r=e.filterSortCatalog(f.o,f.sc,f.p,"none",{sort:sort},f.cats);if(r.length!==f.o.length||r.slice().sort().join(",")!==f.o.slice().sort().join(","))ok=false;});return res("CAT-STABLE","stabilitas filter dan sort",ok,"kombinasi="+all.length);}
+  function retryChecks(){var e=HSL.engine,bad=[];GOLD_CASES.forEach(function(c,i){var x=makeGoldRun(c[1]),want=[-1,0,1,2][i];if(e.weakestStepIndex(x.sc,x.run)!==want)bad.push("idx"+c[0]);});var x=makeGoldRun(["a","c","d","a"]),tr=e.truncateRun(x.run,1);if(tr===x.run||tr.steps.length!==1||x.run.steps.length!==4||e.currentNodeId(x.sc,tr)!=="n2"||e.truncateRun(x.run,-1)!==x.run||e.truncateRun(x.run,9)!==x.run)bad.push("truncate");var r=tr;["a","a","a"].forEach(function(o){r=e.applyChoice(x.sc,r,o);});var s=e.summarize(x.sc,r);if(s.scores.combined!==100||s.keys!==5||!s.safe||s.N!==4)bad.push("replay");return [res("RETRY-IDX","indeks langkah lemah",!bad.some(function(x){return x.indexOf("idx")===0;}),bad.join(",")),res("RETRY-TRUNC","pemangkasan immutable",!bad.some(function(x){return x==="truncate";}),bad.join(",")),res("RETRY-REPLAY","replay retry lemah",!bad.some(function(x){return x==="replay";}),bad.join(","))];}
+  check.runAll=function(){var out=[dictParity(),dictV2Keys(),regOrder(),catCover()],data=HSL.data||{order:[],scenarios:{}}; (Array.isArray(data.order)?data.order:[]).forEach(function(s){var sc=data.scenarios&&data.scenarios[s];if(sc)out.push(scFields(s,sc),scText3(s,sc),scGraf(s,sc),scRubrik(s,sc));});return out.concat(golds(),totd(),[totdRange(),totdSpread()],weakChecks(),[catalogChecks(),catalogSort(),catalogStable()],retryChecks());};
+  check.canonicalDe=function(){var d=HSL.data||{};return(d.order||[]).map(function(s){var sc=d.scenarios&&d.scenarios[s];return{slug:s,titleDe:sc&&sc.title?sc.title.de:"(absen)",summaryDe:sc&&sc.summary?sc.summary.de:"(absen)"};});};
+  if(typeof document!=="undefined"&&document.getElementById("check-out")){var mount=document.getElementById("check-out"),results=check.runAll(),pass=results.filter(function(r){return r.pass;}).length;var h=document.createElement("p");h.textContent=pass+"/"+results.length+" PASS"+(pass===results.length?" — semua hijau":" — ADA KEGAGALAN");h.className=pass===results.length?"check-pass":"check-fail";mount.appendChild(h);var table=document.createElement("table");table.className="check-table";var thead=document.createElement("thead"),trh=document.createElement("tr");["Status","Id","Nama","Detail"].forEach(function(t){var th=document.createElement("th");th.textContent=t;trh.appendChild(th);});thead.appendChild(trh);table.appendChild(thead);var tbody=document.createElement("tbody");results.forEach(function(r){var tr=document.createElement("tr");[[r.pass?"PASS":"FAIL",r.pass?"check-pass":"check-fail"],[r.id],[r.name],[r.detail]].forEach(function(c){var td=document.createElement("td");td.textContent=c[0];if(c[1])td.className=c[1];tr.appendChild(td);});tbody.appendChild(tr);});table.appendChild(tbody);mount.appendChild(table);var h2=document.createElement("h2");h2.textContent="Daftar kanonik DE (pembanding T-04)";mount.appendChild(h2);var ol=document.createElement("ol");check.canonicalDe().forEach(function(r){var li=document.createElement("li");li.textContent=r.slug+" — "+r.titleDe+" — "+r.summaryDe;ol.appendChild(li);});mount.appendChild(ol);}
 })();

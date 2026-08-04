@@ -1,10 +1,11 @@
 (function () {
   "use strict";
   window.HSL = window.HSL || {};
-  HSL.APP_VERSION = "1.0.0";
+  HSL.APP_VERSION = "1.1.0";
 
   var KEY = "hsl.v1";
   var KEY_CORRUPT = "hsl.v1.corrupt";
+  var DEFAULT_CATALOG = { cat: "all", status: "all", diff: "all", sort: "default" };
 
   // Larik migrasi §7.5 — kosong di v1; v2 tinggal mengisi fungsi (state) => state.
   var migrations = [];
@@ -18,7 +19,7 @@
       return {
         schemaVersion: 1,
         app: { version: HSL.APP_VERSION, createdAt: nowIso, updatedAt: nowIso },
-        settings: { motion: "auto" },
+        settings: { motion: "auto", catalog: { cat: "all", status: "all", diff: "all", sort: "default" } },
         progress: {}
       };
     },
@@ -60,6 +61,10 @@
       }
       if (!parsed.progress || typeof parsed.progress !== "object") parsed.progress = {};
       if (typeof parsed.settings.motion !== "string") parsed.settings.motion = "auto";
+      var normalizer = HSL.engine && typeof HSL.engine.normalizeCatalogOpts === "function" ? HSL.engine.normalizeCatalogOpts : null;
+      parsed.settings.catalog = normalizer ? normalizer(parsed.settings.catalog, HSL.data && HSL.data.categories) : {
+        cat: DEFAULT_CATALOG.cat, status: DEFAULT_CATALOG.status, diff: DEFAULT_CATALOG.diff, sort: DEFAULT_CATALOG.sort
+      };
       var ar = parsed.activeRun;
       if (ar !== undefined) {
         if (!ar || typeof ar !== "object" || typeof ar.scenarioId !== "string") {

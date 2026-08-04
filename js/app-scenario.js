@@ -15,7 +15,7 @@
   function player() { return document.getElementById("player"); }
 
   function dataOk() {
-    return HSL.data && Array.isArray(HSL.data.order) && HSL.data.order.length === 12 &&
+    return HSL.data && Array.isArray(HSL.data.order) && HSL.data.order.length >= 12 &&
       HSL.data.order.every(function (slug) { return HSL.data.scenarios && HSL.data.scenarios[slug]; });
   }
 
@@ -269,7 +269,21 @@
     kids.push(ol);
 
     var actions = U.el("div", { "class": "btn-row" });
-    var bRetry = U.el("button", { type: "button", "class": "btn btn--primary" }, I.t("ui.debrief.retry"));
+    var weakIndex = E.weakestStepIndex(sc, run);
+    if (weakIndex >= 0 && run.steps[weakIndex]) {
+      var weakNode = sc.nodes[run.steps[weakIndex].node];
+      var weakWrap = U.el("div", { "class": "retry-weak" });
+      var bWeak = U.el("button", { type: "button", "class": "btn btn--primary" }, I.t("ui.debrief.retryWeak"));
+      weakWrap.appendChild(bWeak);
+      weakWrap.appendChild(U.el("p", { "class": "retry-weak__hint" }, I.t("ui.debrief.retryWeakHint", { n: weakIndex + 1, phase: I.text(weakNode.phase) })));
+      bWeak.addEventListener("click", function () {
+        run = E.truncateRun(run, weakIndex);
+        S.save(function (st) { st.activeRun = run; });
+        renderNode();
+      });
+      actions.appendChild(weakWrap);
+    }
+    var bRetry = U.el("button", { type: "button", "class": "btn" }, I.t("ui.debrief.retry"));
     bRetry.addEventListener("click", startRun);
     actions.appendChild(bRetry);
     actions.appendChild(U.el("a", { "class": "btn", href: "index.html" }, I.t("ui.nav.backToCatalog")));
