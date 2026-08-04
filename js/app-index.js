@@ -1,158 +1,26 @@
 (function () {
   "use strict";
   window.HSL = window.HSL || {};
-  var S, I, E, U;
-  var CAT_ORDER = ["checkin", "complaint", "upsell", "checkout", "privacy", "escalation"];
+  var S, I, E, U, drillMode = null;
+  var AXIS_KEYS = { decision: "ui.debrief.axis.d", language: "ui.debrief.axis.l", sop: "ui.debrief.axis.s" };
 
   function dataOk() {
-    return HSL.data && Array.isArray(HSL.data.order) && HSL.data.order.length === 12 &&
-      HSL.data.order.every(function (slug) { return HSL.data.scenarios && HSL.data.scenarios[slug]; });
+    return HSL.data && Array.isArray(HSL.data.order) && HSL.data.order.length >= 12 && HSL.data.order.every(function (slug) { return HSL.data.scenarios && HSL.data.scenarios[slug]; });
   }
-
-  function hasLang() {
-    var st = S.state;
-    return !!(st && st.settings && ["de", "en", "id"].indexOf(st.settings.lang) >= 0);
-  }
-
-  function showStoreNotices() {
-    var map = { "storage-unavailable": "ui.banner.memory", "corrupt-recovered": "ui.banner.corrupt", "newer-schema": "ui.banner.newer" };
-    S.notices.forEach(function (n) {
-      if (map[n]) U.showBanner({ kind: "warn", text: I.t(map[n]) });
-    });
-  }
-
-  // Panel kunjungan pertama (§12 baris 1) — teks trilingual statis, bukan kunci kamus.
-  function renderFirstVisit() {
-    var host = document.getElementById("first-visit");
-    if (!host) return;
-    U.clear(host);
-    var panel = U.el("div", { "class": "panel first-visit" });
-    var line = U.el("p", { "class": "first-visit__line" });
-    line.appendChild(U.el("span", { lang: "de" }, "Willkommen"));
-    line.appendChild(document.createTextNode(" · "));
-    line.appendChild(U.el("span", { lang: "en" }, "Welcome"));
-    line.appendChild(document.createTextNode(" · "));
-    line.appendChild(U.el("span", { lang: "id" }, "Selamat datang — pilih bahasa Anda."));
-    panel.appendChild(line);
-    var row = U.el("div", { "class": "btn-row" });
-    [["de", "Deutsch"], ["en", "English"], ["id", "Bahasa Indonesia"]].forEach(function (pair) {
-      var b = U.el("button", { type: "button", "class": "btn btn--primary", lang: pair[0] }, pair[1]);
-      b.addEventListener("click", function () { I.setLang(pair[0]); });
-      row.appendChild(b);
-    });
-    panel.appendChild(row);
-    host.appendChild(panel);
-  }
-
-  function renderProgressSummary() {
-    var host = document.getElementById("progress-summary");
-    if (!host) return;
-    U.clear(host);
-    var progress = S.state.progress || {};
-    var done = 0, keysSum = 0, mastered = 0;
-    HSL.data.order.forEach(function (slug) {
-      var p = progress[slug];
-      if (p && p.completed) done++;
-      if (p && p.best) {
-        keysSum += p.best.keys;
-        if (p.best.keys === 5) mastered++;
-      }
-    });
-    if (done === 0) {
-      host.appendChild(U.el("p", { "class": "panel" }, I.t("ui.home.empty")));
-    } else {
-      host.appendChild(U.el("p", { "class": "panel progress-line" }, I.t("ui.home.progress", { done: done, keys: keysSum })));
-    }
-    if (mastered === 12) {
-      host.appendChild(U.el("p", { "class": "panel panel--celebrate" }, I.t("ui.home.mastered")));
-    }
-  }
-
-  function statusOf(slug) {
-    var ar = S.state.activeRun;
-    if (ar && ar.scenarioId === slug) return ["ui.home.status.active", "badge badge--active"];
-    var p = S.state.progress[slug];
-    if (p && p.completed) return ["ui.home.status.done", "badge badge--done"];
-    return ["ui.home.status.new", "badge"];
-  }
-
-  function card(slug) {
-    var sc = HSL.data.scenarios[slug];
-    var a = U.cardShell("scenario.html?id=" + slug);
-    var meta = U.el("p", { "class": "card__meta" });
-    meta.appendChild(U.el("span", null, I.t("ui.home.cat." + sc.category)));
-    var diff = U.el("span");
-    var dots = "";
-    for (var i = 0; i < sc.difficulty; i++) dots += "●";
-    diff.appendChild(U.el("span", { "class": "dots", "aria-hidden": "true" }, dots + " "));
-    diff.appendChild(document.createTextNode(I.t("ui.home.diff." + sc.difficulty)));
-    meta.appendChild(diff);
-    meta.appendChild(U.el("span", null, I.t("ui.home.minutes", { m: sc.minutes })));
-    a.appendChild(meta);
-    a.appendChild(U.el("h3", null, I.text(sc.title)));
-    a.appendChild(U.el("p", { "class": "card__summary" }, I.text(sc.summary)));
-    var status = U.el("p", { "class": "card__status" });
-    var st = statusOf(slug);
-    status.appendChild(U.el("span", { "class": st[1] }, I.t(st[0])));
-    var p = S.state.progress[slug];
-    if (p && p.best) {
-      var srResult = I.t("ui.debrief.result", { label: I.t("ui.debrief.grade." + p.best.keys), keys: p.best.keys });
-      status.appendChild(U.keysRow(p.best.keys, p.best.safe, srResult));
-      status.appendChild(U.el("span", null, I.t("ui.home.best", { pct: p.best.combined })));
-    }
-    a.appendChild(status);
-    return a;
-  }
-
-  function renderCatalog() {
-    var host = document.getElementById("catalog");
-    if (!host) return;
-    U.clear(host);
-    CAT_ORDER.forEach(function (cat) {
-      var slugs = HSL.data.order.filter(function (slug) { return HSL.data.scenarios[slug].category === cat; });
-      if (!slugs.length) return;
-      var section = U.el("section", { "class": "catalog-section", id: "cat-" + cat });
-      section.appendChild(U.el("h2", null, I.t("ui.home.cat." + cat)));
-      var grid = U.el("div", { "class": "catalog-grid" });
-      slugs.forEach(function (slug) { grid.appendChild(card(slug)); });
-      section.appendChild(grid);
-      host.appendChild(section);
-    });
-  }
-
-  function renderDynamic() {
-    var fv = document.getElementById("first-visit");
-    if (fv) U.clear(fv);
-    renderProgressSummary();
-    renderCatalog();
-  }
-
-  function boot() {
-    S = HSL.store; I = HSL.i18n; E = HSL.engine; U = HSL.ui;
-    S.load();
-    U.applyMotionClass();
-    I.applyDocument();
-    U.applyI18n(document);
-    U.langSwitcher(document.getElementById("lang-switch-slot"));
-    showStoreNotices();
-    if (!dataOk()) {
-      U.showBanner({ kind: "danger", text: I.t("ui.player.loadError"), dismissible: false });
-      return;
-    }
-    I.onLangChange = function () {
-      U.applyI18n(document);
-      renderDynamic();
-    };
-    if (!hasLang()) {
-      renderFirstVisit();
-      return; // Konten statis DE tetap tampil sampai bahasa dipilih (§12 baris 1).
-    }
-    renderDynamic();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
-  } else {
-    boot();
-  }
+  function hasLang() { var st=S.state; return !!(st&&st.settings&&["de","en","id"].indexOf(st.settings.lang)>=0); }
+  function todayKey() { var d=new Date(); function p(n){return(n<10?"0":"")+n;} return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
+  function showStoreNotices(){var map={"storage-unavailable":"ui.banner.memory","corrupt-recovered":"ui.banner.corrupt","newer-schema":"ui.banner.newer"};S.notices.forEach(function(n){if(map[n])U.showBanner({kind:"warn",text:I.t(map[n])});});}
+  function renderFirstVisit(){var host=document.getElementById("first-visit");if(!host)return;U.clear(host);var panel=U.el("div",{"class":"panel first-visit"});var line=U.el("p",{"class":"first-visit__line"});line.appendChild(U.el("span",{lang:"de"},"Willkommen"));line.appendChild(document.createTextNode(" · "));line.appendChild(U.el("span",{lang:"en"},"Welcome"));line.appendChild(document.createTextNode(" · "));line.appendChild(U.el("span",{lang:"id"},"Selamat datang — pilih bahasa Anda."));panel.appendChild(line);var row=U.el("div",{"class":"btn-row"});[["de","Deutsch"],["en","English"],["id","Bahasa Indonesia"]].forEach(function(pair){var b=U.el("button",{type:"button","class":"btn btn--primary",lang:pair[0]},pair[1]);b.addEventListener("click",function(){I.setLang(pair[0]);});row.appendChild(b);});panel.appendChild(row);host.appendChild(panel);}
+  function renderTotd(){var host=document.getElementById("totd");if(!host)return;U.clear(host);var slug=E.trainingOfTheDay(HSL.data.order,todayKey()),sc=slug&&HSL.data.scenarios[slug];if(!sc)return;var key="totd-title";host.appendChild(U.el("h2",{id:key},I.t("ui.home.totd.title")));var date=todayKey(), formatted=date;try{formatted=new Intl.DateTimeFormat({de:"de-DE",en:"en-GB",id:"id-ID"}[I.lang()]||"de-DE",{dateStyle:"full"}).format(new Date(date+"T12:00:00"));}catch(e){}host.appendChild(U.el("p",{"class":"totd__date"},I.t("ui.home.totd.date",{date:formatted})));var meta=U.el("p",{"class":"card__meta"},[I.t("ui.home.cat."+sc.category)," · ",I.t("ui.home.diff."+sc.difficulty)," · ",I.t("ui.home.minutes",{m:sc.minutes})]);host.appendChild(meta);host.appendChild(U.el("h3",null,I.text(sc.title)));host.appendChild(U.el("p",{"class":"card__summary"},I.text(sc.summary)));var actions=U.el("div",{"class":"btn-row"});actions.appendChild(U.el("a",{class:"btn btn--primary",href:"scenario.html?id="+slug},I.t("ui.home.totd.cta")));var p=S.state.progress[slug];if(p&&p.best&&p.best.keys===5)host.appendChild(U.el("p",null,I.t("ui.home.totd.hint")));host.appendChild(actions);}
+  function renderProgressSummary(){var host=document.getElementById("progress-summary");if(!host)return;U.clear(host);var progress=S.state.progress||{},done=0,keys=0,mastered=0,total=HSL.data.order.length;HSL.data.order.forEach(function(slug){var p=progress[slug];if(p&&p.completed)done++;if(p&&p.best){keys+=Number(p.best.keys)||0;if(p.best.keys===5)mastered++;}});if(!done)host.appendChild(U.el("p",{class:"panel"},I.t("ui.home.empty")));else host.appendChild(U.el("p",{class:"panel progress-line"},I.t("ui.home.progress",{done:done,total:total,keys:keys,max:total*5})));if(mastered===total)host.appendChild(U.el("p",{class:"panel panel--celebrate"},I.t("ui.home.mastered")));}
+  function statusOf(slug){var st=E.statusOfSlug(slug,S.state.progress,S.state.activeRun&&S.state.activeRun.scenarioId);return ["ui.home.status."+st,"badge badge--"+st];}
+  function card(slug){var sc=HSL.data.scenarios[slug],a=U.cardShell("scenario.html?id="+slug),meta=U.el("p",{class:"card__meta"});meta.appendChild(U.el("span",null,I.t("ui.home.cat."+sc.category)));var diff=U.el("span"),dots="";for(var i=0;i<sc.difficulty;i++)dots+="●";diff.appendChild(U.el("span",{class:"dots","aria-hidden":"true"},dots+" "));diff.appendChild(document.createTextNode(I.t("ui.home.diff."+sc.difficulty)));meta.appendChild(diff);meta.appendChild(U.el("span",null,I.t("ui.home.minutes",{m:sc.minutes})));a.appendChild(meta);a.appendChild(U.el("h3",null,I.text(sc.title)));a.appendChild(U.el("p",{class:"card__summary"},I.text(sc.summary)));var status=U.el("p",{class:"card__status"}),st=statusOf(slug);status.appendChild(U.el("span",{class:st[1]},I.t(st[0])));var p=S.state.progress[slug];if(p&&p.best){status.appendChild(U.keysRow(p.best.keys,p.best.safe,I.t("ui.debrief.result",{label:I.t("ui.debrief.grade."+p.best.keys),keys:p.best.keys})));status.appendChild(U.el("span",null,I.t("ui.home.best",{pct:p.best.combined})));}var today=E.trainingOfTheDay(HSL.data.order,todayKey());if(today===slug)status.appendChild(U.el("span",{class:"badge badge--totd"},I.t("ui.home.totd.badge")));if(drillMode&&drillMode.slugs.indexOf(slug)>=0){var b=p&&p.best?Number(p.best[drillMode.axis]):0;status.appendChild(U.el("span",{class:"badge badge--drill"},I.t("ui.home.drill.badge",{axis:I.t(AXIS_KEYS[drillMode.axis]),pct:b})));}a.appendChild(status);return a;}
+  function renderDrill(){var host=document.getElementById("drill");if(!host)return;U.clear(host);host.appendChild(U.el("h2",{id:"drill-title"},I.t("ui.home.drill.title")));var w=E.weakAxis(HSL.data.order,S.state.progress);if(!w){host.appendChild(U.el("p",null,I.t("ui.home.drill.needMore")));return;}host.appendChild(U.el("p",null,I.t("ui.home.drill.axisLow",{axis:I.t(AXIS_KEYS[w.axis]),pct:w.avg})));if(!w.slugs.length){var stats=E.axisStats(HSL.data.order,S.state.progress);host.appendChild(U.el("p",null,I.t("ui.home.drill.none")));host.appendChild(U.el("p",{class:"drill__averages"},I.t("ui.debrief.axis",{axis:I.t(AXIS_KEYS.decision),pct:stats.decision.avg})+" · "+I.t("ui.debrief.axis",{axis:I.t(AXIS_KEYS.language),pct:stats.language.avg})+" · "+I.t("ui.debrief.axis",{axis:I.t(AXIS_KEYS.sop),pct:stats.sop.avg})));return;}var ul=U.el("ul");w.slugs.forEach(function(slug){var p=S.state.progress[slug],value=p&&p.best?p.best[w.axis]:0;ul.appendChild(U.el("li",null,[U.el("a",{href:"scenario.html?id="+slug},I.text(HSL.data.scenarios[slug].title))," — "+value]));});host.appendChild(ul);var btn=U.el("button",{type:"button",class:"btn btn--primary"},I.t("ui.home.drill.cta"));btn.addEventListener("click",function(){drillMode={axis:w.axis,slugs:w.slugs};renderCatalog();renderCount();var title=document.getElementById("cat-results-title");if(title)U.focusHeading(title);});host.appendChild(U.el("div",{class:"btn-row"},[btn]));}
+  function option(select,value,label){var o=U.el("option",{value:value},label);if(String(value)===String(select.dataset.value))o.selected=true;select.appendChild(o);}
+  function renderFilter(){var host=document.getElementById("catalog-filter");if(!host)return;U.clear(host);var current=E.normalizeCatalogOpts(S.state.settings&&S.state.settings.catalog,HSL.data.categories),form=U.el("form",{class:"catalog-filter"}),fs=U.el("fieldset"),legend=U.el("legend",null,I.t("ui.home.filter.legend"));fs.appendChild(legend);var defs=[{key:"cat",label:"ui.home.filter.cat",values:[["all",I.t("ui.home.filter.all")]].concat(HSL.data.categories.map(function(c){return[c,I.t("ui.home.cat."+c)]}))},{key:"status",label:"ui.home.filter.status",values:[["all",I.t("ui.home.filter.all")],["new",I.t("ui.home.status.new")],["active",I.t("ui.home.status.active")],["done",I.t("ui.home.status.done")],["mastered",I.t("ui.home.status.mastered")]]},{key:"diff",label:"ui.home.filter.diff",values:[["all",I.t("ui.home.filter.all")],[1,I.t("ui.home.diff.1")],[2,I.t("ui.home.diff.2")],[3,I.t("ui.home.diff.3")]]},{key:"sort",label:"ui.home.filter.sort",values:[["default",I.t("ui.home.sort.default")],["best",I.t("ui.home.sort.best")],["difficulty",I.t("ui.home.sort.difficulty")]]}];defs.forEach(function(def){var label=U.el("label",null,I.t(def.label)),sel=U.el("select",{name:def.key});sel.dataset.value=current[def.key];def.values.forEach(function(v){option(sel,v[0],v[1]);});sel.addEventListener("change",function(){var next={cat:current.cat,status:current.status,diff:current.diff,sort:current.sort};next[def.key]=sel.value;next=E.normalizeCatalogOpts(next,HSL.data.categories);var changed=JSON.stringify(next)!==JSON.stringify(E.normalizeCatalogOpts(S.state.settings.catalog,HSL.data.categories));if(changed)S.save(function(st){st.settings.catalog=next;});drillMode=null;renderDynamic();});label.appendChild(sel);fs.appendChild(label);});var reset=U.el("button",{type:"button",class:"btn"},I.t("ui.home.filter.reset"));reset.addEventListener("click",function(){drillMode=null;var d={cat:"all",status:"all",diff:"all",sort:"default"};if(JSON.stringify(current)!==JSON.stringify(d))S.save(function(st){st.settings.catalog=d;});renderDynamic();});fs.appendChild(reset);form.appendChild(fs);host.appendChild(form);}
+  function renderCount(n){var el=document.getElementById("catalog-count");if(el)el.textContent=I.t("ui.home.filter.count",{n:n,total:HSL.data.order.length});}
+  function renderCatalog(){var host=document.getElementById("catalog");if(!host)return;U.clear(host);var stored=E.normalizeCatalogOpts(S.state.settings&&S.state.settings.catalog,HSL.data.categories),opts=drillMode?{cat:"all",status:"all",diff:"all",sort:"weak",axis:drillMode.axis}:stored,slugs=E.filterSortCatalog(HSL.data.order,HSL.data.scenarios,S.state.progress,S.state.activeRun&&S.state.activeRun.scenarioId,opts,HSL.data.categories),nav=document.querySelector(".chip-nav"),grouped=!drillMode&&stored.sort==="default"&&stored.cat==="all";if(nav)nav.hidden=!grouped;renderCount(slugs.length);if(!slugs.length){var empty=U.el("section",{class:"panel"});empty.appendChild(U.el("p",null,I.t("ui.home.filter.none")));var reset=U.el("button",{type:"button",class:"btn"},I.t("ui.home.filter.reset"));reset.addEventListener("click",function(){drillMode=null;S.save(function(st){st.settings.catalog={cat:"all",status:"all",diff:"all",sort:"default"};});renderDynamic();});empty.appendChild(reset);host.appendChild(empty);return;}if(grouped){HSL.data.categories.forEach(function(cat){var ss=slugs.filter(function(s){return HSL.data.scenarios[s].category===cat;});if(!ss.length)return;var section=U.el("section",{class:"catalog-section",id:"cat-"+cat});section.appendChild(U.el("h2",null,I.t("ui.home.cat."+cat)));var grid=U.el("div",{class:"catalog-grid"});ss.forEach(function(s){grid.appendChild(card(s));});section.appendChild(grid);host.appendChild(section);});}else{var section=U.el("section",{class:"catalog-section",id:"cat-results"}),title=U.el("h2",{id:"cat-results-title",tabindex:"-1"},I.t("ui.home.filter.resultsTitle")),grid=U.el("div",{class:"catalog-grid"});section.appendChild(title);slugs.forEach(function(s){grid.appendChild(card(s));});section.appendChild(grid);host.appendChild(section);}}
+  function renderDynamic(){var fv=document.getElementById("first-visit");if(fv)U.clear(fv);renderTotd();renderProgressSummary();renderDrill();renderFilter();renderCatalog();}
+  function boot(){S=HSL.store;I=HSL.i18n;E=HSL.engine;U=HSL.ui;S.load();U.applyMotionClass();I.applyDocument();U.applyI18n(document);U.langSwitcher(document.getElementById("lang-switch-slot"));showStoreNotices();if(!dataOk()){U.showBanner({kind:"danger",text:I.t("ui.player.loadError"),dismissible:false});return;}I.onLangChange=function(){U.applyI18n(document);renderDynamic();};if(!hasLang()){renderFirstVisit();return;}renderDynamic();}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
 })();

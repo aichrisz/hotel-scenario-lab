@@ -22,6 +22,9 @@
   <script src="data/scenarios/sc-10-checkout-minibar-dispute.js" defer></script>
   <script src="data/scenarios/sc-11-privacy-caller.js" defer></script>
   <script src="data/scenarios/sc-12-escalation-collapse.js" defer></script>
+  <script src="data/scenarios/sc-13-fnb-breakfast-allergy.js" defer></script>
+  <script src="data/scenarios/sc-14-housekeeping-lost-property.js" defer></script>
+  <script src="data/scenarios/sc-15-overbooking-walk.js" defer></script>
   <script src="js/store.js" defer></script>
   <script src="js/i18n.js" defer></script>
   <script src="js/engine.js" defer></script>
@@ -44,7 +47,11 @@
       <p lang="id">Latihan interaktif memerlukan JavaScript. Katalog dan halaman informasi tetap dapat dibaca.</p>
     </noscript>
     <div id="first-visit" class="js-only"></div>
+    <section id="totd" class="js-only panel" aria-labelledby="totd-title"></section>
     <div id="progress-summary" class="js-only"></div>
+    <section id="drill" class="js-only panel" aria-labelledby="drill-title"></section>
+    <div id="catalog-filter" class="js-only"></div>
+    <p id="catalog-count" class="filter-count js-only" aria-live="polite"></p>
     <nav class="chip-nav" aria-label="Kategorien">
       <ul class="chip-row">
         <li><a class="chip" href="#cat-checkin" data-i18n="ui.home.cat.checkin">Check-in</a></li>
@@ -53,6 +60,9 @@
         <li><a class="chip" href="#cat-checkout" data-i18n="ui.home.cat.checkout">Check-out</a></li>
         <li><a class="chip" href="#cat-privacy" data-i18n="ui.home.cat.privacy">Privatsphäre</a></li>
         <li><a class="chip" href="#cat-escalation" data-i18n="ui.home.cat.escalation">Eskalation</a></li>
+        <li><a class="chip" href="#cat-fnb" data-i18n="ui.home.cat.fnb">Frühstück &amp; F&amp;B</a></li>
+        <li><a class="chip" href="#cat-housekeeping" data-i18n="ui.home.cat.housekeeping">Housekeeping</a></li>
+        <li><a class="chip" href="#cat-overbooking" data-i18n="ui.home.cat.overbooking">Überbuchung</a></li>
       </ul>
     </nav>
     <div id="catalog">
@@ -145,11 +155,27 @@
             <p class="card__summary">Eine Frau bricht in der Lobby zusammen — jetzt zählen Notruf, Ruhe und klare Aufgaben.</p>
           </a>
         </div>
+      <section class="catalog-section" id="cat-fnb">
+        <h2>Frühstück &amp; F&amp;B</h2>
+        <div class="catalog-grid">
+          <a class="card" href="scenario.html?id=sc-13-fnb-breakfast-allergy"><p class="card__meta"><span>Frühstück &amp; F&amp;B</span> <span><span class="dots" aria-hidden="true">●●●</span> Fortgeschritten</span> <span>±6 Min.</span></p><h3>Allergie-Anfrage am Frühstücksbuffet</h3><p class="card__summary">Ein Gast fragt am Buffet nach Nüssen — die Antwort muss stimmen, nicht beruhigen.</p></a>
+        </div>
+      </section>
+      <section class="catalog-section" id="cat-housekeeping">
+        <h2>Housekeeping</h2>
+        <div class="catalog-grid">
+          <a class="card" href="scenario.html?id=sc-14-housekeeping-lost-property"><p class="card__meta"><span>Housekeeping</span> <span><span class="dots" aria-hidden="true">●●</span> Mittel</span> <span>±5 Min.</span></p><h3>Vergessener Ring im abgereisten Zimmer</h3><p class="card__summary">Eine abgereiste Gästin ruft an: ein Ring liegt noch im Zimmer — das inzwischen neu belegt ist.</p></a>
+        </div>
+      </section>
+      <section class="catalog-section" id="cat-overbooking">
+        <h2>Überbuchung</h2>
+        <div class="catalog-grid">
+          <a class="card" href="scenario.html?id=sc-15-overbooking-walk"><p class="card__meta"><span>Überbuchung</span> <span><span class="dots" aria-hidden="true">●●●</span> Fortgeschritten</span> <span>±7 Min.</span></p><h3>Haus voll — Gast muss umgebucht werden</h3><p class="card__summary">22:10, das Haus ist voll, und ein garantiert gebuchter Gast steht vor Ihnen.</p></a>
+        </div>
       </section>
     </div>
-  </main>
   <footer class="footer">
-    <p><a href="info.html" data-i18n="ui.nav.infoLink">Informationen &amp; Einstellungen</a> · v1.0.0</p>
+    <p><a href="info.html" data-i18n="ui.nav.infoLink">Informationen &amp; Einstellungen</a> · v1.1.0</p>
     <p data-i18n="ui.nav.privacyLine">Alle Daten bleiben nur auf diesem Gerät.</p>
   </footer>
 </body>
