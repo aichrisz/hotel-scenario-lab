@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hotel Scenario Lab — Entscheidungstraining für die Rezeption</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="i18n/de.js" defer></script>
+  <script src="i18n/en.js" defer></script>
+  <script src="i18n/id.js" defer></script>
+  <script src="data/registry.js" defer></script>
+  <script src="data/scenarios/sc-01-checkin-standard.js" defer></script>
+  <script src="data/scenarios/sc-02-checkin-no-reservation.js" defer></script>
+  <script src="data/scenarios/sc-03-checkin-language-barrier.js" defer></script>
+  <script src="data/scenarios/sc-04-complaint-noise.js" defer></script>
+  <script src="data/scenarios/sc-05-complaint-billing.js" defer></script>
+  <script src="data/scenarios/sc-06-complaint-review-threat.js" defer></script>
+  <script src="data/scenarios/sc-07-upsell-arrival.js" defer></script>
+  <script src="data/scenarios/sc-08-upsell-services.js" defer></script>
+  <script src="data/scenarios/sc-09-checkout-rush.js" defer></script>
+  <script src="data/scenarios/sc-10-checkout-minibar-dispute.js" defer></script>
+  <script src="data/scenarios/sc-11-privacy-caller.js" defer></script>
+  <script src="data/scenarios/sc-12-escalation-collapse.js" defer></script>
+  <script src="js/store.js" defer></script>
+  <script src="js/i18n.js" defer></script>
+  <script src="js/engine.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/app-index.js" defer></script>
+</head>
+<body class="page">
+  <script>document.documentElement.classList.add("js")</script>
+  <a class="skip-link" href="#main" data-i18n="ui.skip">Zum Inhalt springen</a>
+  <header class="app-header">
+    <h1 class="app-header__name"><a href="index.html" data-i18n="ui.nav.appName">Hotel Scenario Lab</a></h1>
+    <p class="app-header__sub" data-i18n="ui.nav.subtitle">Entscheidungstraining für die Rezeption</p>
+    <div class="lang-switch-slot js-only" id="lang-switch-slot"></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <div id="banners" aria-live="polite"></div>
+    <noscript>
+      <p lang="de">Die interaktiven Übungen benötigen JavaScript. Der Katalog und die Informationsseite bleiben lesbar.</p>
+      <p lang="en">The interactive practice requires JavaScript. The catalogue and the information page remain readable.</p>
+      <p lang="id">Latihan interaktif memerlukan JavaScript. Katalog dan halaman informasi tetap dapat dibaca.</p>
+    </noscript>
+    <div id="first-visit" class="js-only"></div>
+    <div id="progress-summary" class="js-only"></div>
+    <nav class="chip-nav" aria-label="Kategorien">
+      <ul class="chip-row">
+        <li><a class="chip" href="#cat-checkin" data-i18n="ui.home.cat.checkin">Check-in</a></li>
+        <li><a class="chip" href="#cat-complaint" data-i18n="ui.home.cat.complaint">Beschwerden</a></li>
+        <li><a class="chip" href="#cat-upsell" data-i18n="ui.home.cat.upsell">Zusatzverkauf</a></li>
+        <li><a class="chip" href="#cat-checkout" data-i18n="ui.home.cat.checkout">Check-out</a></li>
+        <li><a class="chip" href="#cat-privacy" data-i18n="ui.home.cat.privacy">Privatsphäre</a></li>
+        <li><a class="chip" href="#cat-escalation" data-i18n="ui.home.cat.escalation">Eskalation</a></li>
+      </ul>
+    </nav>
+    <div id="catalog">
+      <section class="catalog-section" id="cat-checkin">
+        <h2>Check-in</h2>
+        <div class="catalog-grid">
+          <a class="card" href="scenario.html?id=sc-01-checkin-standard">
+            <p class="card__meta"><span>Check-in</span> <span><span class="dots" aria-hidden="true">●</span> Basis</span> <span>±5 Min.</span></p>
+            <h3>Check-in mit Reservierung</h3>
+            <p class="card__summary">Ein Gast mit Reservierung trifft am Nachmittag ein, und die Schlange hinter ihm wächst.</p>
+          </a>
+          <a class="card" href="scenario.html?id=sc-02-checkin-no-reservation">
+            <p class="card__meta"><span>Check-in</span> <span><span class="dots" aria-hidden="true">●●</span> Mittel</span> <span>±7 Min.</span></p>
+            <h3>Keine Reservierung im System</h3>
+            <p class="card__summary">Kurz vor Mitternacht steht eine erschöpfte Reisende ohne auffindbare Buchung am Empfang.</p>
+          </a>
+          <a class="card" href="scenario.html?id=sc-03-checkin-language-barrier">
+            <p class="card__meta"><span>Check-in</span> <span><span class="dots" aria-hidden="true">●●</span> Mittel</span> <span>±6 Min.</span></p>
+            <h3>Gast mit Sprachbarriere</h3>
+            <p class="card__summary">Ein älteres Ehepaar findet kaum gemeinsame Worte mit Ihnen, und die Schlange wird länger.</p>
+          </a>
+        </div>
+      </section>
+      <section class="catalog-section" id="cat-complaint">
+        <h2>Beschwerden</h2>
+        <div class="catalog-grid">
+          <a class="card" href="scenario.html?id=sc-04-complaint-noise">
+            <p class="card__meta"><span>Beschwerden</span> <span><span class="dots" aria-hidden="true">●</span> Basis</span> <span>±5 Min.</span></p>
+            <h3>Lärmbeschwerde am Abend</h3>
+            <p class="card__summary">Eine Anruferin klagt am späten Abend über Lärm aus dem Nachbarzimmer — zum zweiten Mal.</p>
+          </a>
+          <a class="card" href="scenario.html?id=sc-05-complaint-billing">
+            <p class="card__meta"><span>Beschwerden</span> <span><span class="dots" aria-hidden="true">●●</span> Mittel</span> <span>±6 Min.</span></p>
+            <h3>Strittige Rechnung an der Rezeption</h3>
+            <p class="card__summary">Ein Gast findet auf seiner Rechnung ein doppelt berechnetes Frühstück und fragliche Minibar-Posten.</p>
+          </a>
+          <a class="card" href="scenario.html?id=sc-06-complaint-review-threat">
+            <p class="card__meta"><span>Beschwerden</span> <span><span class="dots" aria-hidden="true">●●●</span> Fortgeschritten</span> <span>±7 Min.</span></p>
+            <h3>Drohung mit schlechter Bewertung</h3>
+            <p class="card__summary">Ein Gast fordert eine Gratisnacht und droht mit schlechten Bewertungen auf allen Plattformen.</p>
+          </a>
+        </div>
+      </section>
+      <section class="catalog-section" id="cat-upsell">
+        <h2>Zusatzverkauf</h2>
+        <div class="catalog-grid">
+          <a class="card" href="scenario.html?id=sc-07-upsell-arrival">
+            <p class="card__meta"><span>Zusatzverkauf</span> <span><span class="dots" aria-hidden="true">●</span> Basis</span> <span>±4 Min.</span></p>
+            <h3>Zimmer-Upgrade anbieten</h3>
+            <p class="card__summary">Ein Ehepaar feiert seinen Hochzeitstag — vielleicht der richtige Moment für ein Upgrade mit Meerblick.</p>
+          </a>
+          <a class="card" href="scenario.html?id=sc-08-upsell-services">
+            <p class="card__meta"><span>Zusatzverkauf</span> <span><span class="dots" aria-hidden="true">●●</span> Mittel</span> <span>±5 Min.</span></p>
+            <h3>Frühstück und Late Check-out anbieten</h3>
+            <p class="card__summary">Eine Geschäftsreisende checkt spät ein; Frühstück und Late Check-out könnten ihr den Morgen retten.</p>
+          </a>
+        </div>
+      </section>
+      <section class="catalog-section" id="cat-checkout">
+        <h2>Check-out</h2>
+        <div class="catalog-grid">
+          <a class="card" href="scenario.html?id=sc-09-checkout-rush">
+            <p class="card__meta"><span>Check-out</span> <span><span class="dots" aria-hidden="true">●●</span> Mittel</span> <span>±6 Min.</span></p>
+            <h3>Check-out zur Stoßzeit</h3>
+            <p class="card__summary">Sechs Gäste in der Schlange, ein Shuttle um 08:05 — Check-out unter Zeitdruck, ohne die Freundlichkeit zu verlieren.</p>
+          </a>
+          <a class="card" href="scenario.html?id=sc-10-checkout-minibar-dispute">
+            <p class="card__meta"><span>Check-out</span> <span><span class="dots" aria-hidden="true">●●</span> Mittel</span> <span>±5 Min.</span></p>
+            <h3>Minibar-Streit beim Check-out</h3>
+            <p class="card__summary">Ein Gast bestreitet beim Check-out zwei Minibar-Posten, und der letzte Eindruck steht auf dem Spiel.</p>
+          </a>
+        </div>
+      </section>
+      <section class="catalog-section" id="cat-privacy">
+        <h2>Privatsphäre</h2>
+        <div class="catalog-grid">
+          <a class="card" href="scenario.html?id=sc-11-privacy-caller">
+            <p class="card__meta"><span>Privatsphäre</span> <span><span class="dots" aria-hidden="true">●●●</span> Fortgeschritten</span> <span>±6 Min.</span></p>
+            <h3>Anrufer fragt nach einem Gast</h3>
+            <p class="card__summary">Ein Anrufer gibt sich als Angehöriger aus und verlangt Auskunft über einen Gast.</p>
+          </a>
+        </div>
+      </section>
+      <section class="catalog-section" id="cat-escalation">
+        <h2>Eskalation</h2>
+        <div class="catalog-grid">
+          <a class="card" href="scenario.html?id=sc-12-escalation-collapse">
+            <p class="card__meta"><span>Eskalation</span> <span><span class="dots" aria-hidden="true">●●●</span> Fortgeschritten</span> <span>±6 Min.</span></p>
+            <h3>Bewusstloser Gast in der Lobby</h3>
+            <p class="card__summary">Eine Frau bricht in der Lobby zusammen — jetzt zählen Notruf, Ruhe und klare Aufgaben.</p>
+          </a>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer class="footer">
+    <p><a href="info.html" data-i18n="ui.nav.infoLink">Informationen &amp; Einstellungen</a> · v1.0.0</p>
+    <p data-i18n="ui.nav.privacyLine">Alle Daten bleiben nur auf diesem Gerät.</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Szenario-Player — Hotel Scenario Lab</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="i18n/de.js" defer></script>
+  <script src="i18n/en.js" defer></script>
+  <script src="i18n/id.js" defer></script>
+  <script src="data/registry.js" defer></script>
+  <script src="data/scenarios/sc-01-checkin-standard.js" defer></script>
+  <script src="data/scenarios/sc-02-checkin-no-reservation.js" defer></script>
+  <script src="data/scenarios/sc-03-checkin-language-barrier.js" defer></script>
+  <script src="data/scenarios/sc-04-complaint-noise.js" defer></script>
+  <script src="data/scenarios/sc-05-complaint-billing.js" defer></script>
+  <script src="data/scenarios/sc-06-complaint-review-threat.js" defer></script>
+  <script src="data/scenarios/sc-07-upsell-arrival.js" defer></script>
+  <script src="data/scenarios/sc-08-upsell-services.js" defer></script>
+  <script src="data/scenarios/sc-09-checkout-rush.js" defer></script>
+  <script src="data/scenarios/sc-10-checkout-minibar-dispute.js" defer></script>
+  <script src="data/scenarios/sc-11-privacy-caller.js" defer></script>
+  <script src="data/scenarios/sc-12-escalation-collapse.js" defer></script>
+  <script src="js/store.js" defer></script>
+  <script src="js/i18n.js" defer></script>
+  <script src="js/engine.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/app-scenario.js" defer></script>
+</head>
+<body class="page">
+  <script>document.documentElement.classList.add("js")</script>
+  <a class="skip-link" href="#main" data-i18n="ui.skip">Zum Inhalt springen</a>
+  <header class="app-header">
+    <p class="app-header__name"><a href="index.html" data-i18n="ui.nav.appName">Hotel Scenario Lab</a></p>
+    <p class="app-header__sub" data-i18n="ui.nav.subtitle">Entscheidungstraining für die Rezeption</p>
+    <div class="lang-switch-slot js-only" id="lang-switch-slot"></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <div id="banners" aria-live="polite"></div>
+    <div class="no-js-only">
+      <h1>Szenario-Player</h1>
+      <p lang="de">Der interaktive Szenario-Player benötigt JavaScript. Bitte aktivieren Sie JavaScript in Ihrem Browser, um die Übungen zu spielen.</p>
+      <p lang="en">The interactive scenario player requires JavaScript. Please enable JavaScript in your browser to play the practice scenarios.</p>
+      <p lang="id">Pemutar skenario interaktif memerlukan JavaScript. Aktifkan JavaScript di peramban Anda untuk memainkan latihan.</p>
+      <p><a href="index.html">Zurück zum Katalog</a></p>
+    </div>
+    <div id="player" class="js-only"></div>
+  </main>
+  <footer class="footer">
+    <p><a href="info.html" data-i18n="ui.nav.infoLink">Informationen &amp; Einstellungen</a> · v1.0.0</p>
+    <p data-i18n="ui.nav.privacyLine">Alle Daten bleiben nur auf diesem Gerät.</p>
+  </footer>
+</body>
+</html>
