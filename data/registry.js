@@ -4,7 +4,7 @@
   var data = (HSL.data = HSL.data || { scenarios: {}, order: [] });
   data.categories = [
     "checkin", "complaint", "upsell", "checkout", "privacy", "escalation",
-    "fnb", "housekeeping", "overbooking"
+    "fnb", "housekeeping", "overbooking", "security"
   ];
   data.order = [
     "sc-01-checkin-standard", "sc-02-checkin-no-reservation",
@@ -14,6 +14,6 @@
     "sc-09-checkout-rush", "sc-10-checkout-minibar-dispute",
     "sc-11-privacy-caller", "sc-12-escalation-collapse",
     "sc-13-fnb-breakfast-allergy", "sc-14-housekeeping-lost-property",
-    "sc-15-overbooking-walk"
+    "sc-15-overbooking-walk", "sc-16-security-duplicate-key"
   ];
 })();
