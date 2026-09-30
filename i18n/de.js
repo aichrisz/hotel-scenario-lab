@@ -22,6 +22,7 @@
     "ui.home.cat.fnb": "Frühstück & F&B",
     "ui.home.cat.housekeeping": "Housekeeping",
     "ui.home.cat.overbooking": "Überbuchung",
+    "ui.home.cat.security": "Sicherheit",
     "ui.home.diff.1": "Basis",
     "ui.home.diff.2": "Mittel",
     "ui.home.diff.3": "Fortgeschritten",
