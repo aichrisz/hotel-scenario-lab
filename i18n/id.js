@@ -22,6 +22,7 @@
     "ui.home.cat.fnb": "Sarapan & F&B",
     "ui.home.cat.housekeeping": "Housekeeping",
     "ui.home.cat.overbooking": "Overbooking",
+    "ui.home.cat.security": "Keamanan",
     "ui.home.diff.1": "Dasar",
     "ui.home.diff.2": "Menengah",
     "ui.home.diff.3": "Lanjut",

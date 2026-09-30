@@ -6,7 +6,7 @@
   var ORDER16 = ORDER12.concat(["sc-13-fnb-breakfast-allergy","sc-14-housekeeping-lost-property","sc-15-overbooking-walk"]);
   var ORDER16 = ORDER16.concat(["sc-16-security-duplicate-key"]);
   var LANGS = ["de", "en", "id"], FALLBACK_CATS = ["checkin","complaint","upsell","checkout","privacy","escalation","fnb","housekeeping","overbooking","security"], SOPS = ["P1","P2","P3","P4","P5","P6","P7","P8"];
-  var V2_KEYS = ["ui.home.cat.fnb","ui.home.cat.housekeeping","ui.home.cat.overbooking","ui.home.status.mastered","ui.home.totd.title","ui.home.totd.date","ui.home.totd.cta","ui.home.totd.hint","ui.home.totd.badge","ui.home.drill.title","ui.home.drill.needMore","ui.home.drill.none","ui.home.drill.axisLow","ui.home.drill.cta","ui.home.drill.badge","ui.home.filter.legend","ui.home.filter.cat","ui.home.filter.status","ui.home.filter.diff","ui.home.filter.sort","ui.home.filter.all","ui.home.filter.reset","ui.home.filter.count","ui.home.filter.none","ui.home.filter.resultsTitle","ui.home.sort.default","ui.home.sort.best","ui.home.sort.difficulty","ui.debrief.retryWeak","ui.debrief.retryWeakHint"];
+  var V2_KEYS = ["ui.home.cat.fnb","ui.home.cat.housekeeping","ui.home.cat.overbooking","ui.home.cat.security","ui.home.status.mastered","ui.home.totd.title","ui.home.totd.date","ui.home.totd.cta","ui.home.totd.hint","ui.home.totd.badge","ui.home.drill.title","ui.home.drill.needMore","ui.home.drill.none","ui.home.drill.axisLow","ui.home.drill.cta","ui.home.drill.badge","ui.home.filter.legend","ui.home.filter.cat","ui.home.filter.status","ui.home.filter.diff","ui.home.filter.sort","ui.home.filter.all","ui.home.filter.reset","ui.home.filter.count","ui.home.filter.none","ui.home.filter.resultsTitle","ui.home.sort.default","ui.home.sort.best","ui.home.sort.difficulty","ui.debrief.retryWeak","ui.debrief.retryWeakHint"];
   function res(id, name, pass, detail) { return { id:id, name:name, pass:!!pass, detail:detail || "" }; }
   function isText3(v) { return !!v && typeof v === "object" && LANGS.every(function (l) { return typeof v[l] === "string" && v[l].trim(); }); }
   function paramsOf(s) { return (String(s).match(/\{(\w+)\}/g) || []).map(function (x) { return x.slice(1,-1); }).sort().join(","); }
@@ -35,7 +35,7 @@
   }
   function catCover() {
     var data=HSL.data||{}, cs=data.categories, bad=[];
-    if (!Array.isArray(cs) || cs.length!==cats().length || !cs.every(function (x) { return typeof x === "string"; })) bad.push("categories bukan "+cats().length+" string");
+    if (!Array.isArray(cs) || cs.length!==FALLBACK_CATS.length || !cs.every(function (x) { return typeof x === "string"; })) bad.push("categories bukan "+FALLBACK_CATS.length+" string");
     var present=Array.isArray(cs)?cs:[];
     FALLBACK_CATS.slice(0,6).forEach(function (c,i) { if (present[i]!==c) bad.push("kategori v1 posisi "+(i+1)); });
     (data.order||[]).forEach(function (s) { var sc=data.scenarios&&data.scenarios[s]; if (sc && present.indexOf(sc.category)<0) bad.push(s+" kategori asing"); });
